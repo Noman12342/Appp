@@ -16,6 +16,7 @@
             color: #39FF14; /* neon-green */
             min-height: 100vh;
             padding: 1rem;
+            box-sizing: border-box; /* Ensure padding and border are included in element's total width */
         }
         .text-neon-blue { color: #00FFFF; } /* Cyan */
         .text-neon-blue-light { color: #80FFFF; }
@@ -62,6 +63,14 @@
         .bg-gray-650 { background-color: #3f4045; } /* Slightly lighter than 700 */
         .bg-gray-750 { background-color: #2f3033; } /* Slightly darker than 700 */
 
+        /* Receipt specific styles for responsiveness */
+        #receipt-content {
+            box-sizing: border-box; /* Crucial for consistent sizing */
+            max-width: 148mm; /* A5 width in portrait */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         /* Print specific styles */
         @media print {
             body {
@@ -71,6 +80,7 @@
                 color: black !important; /* Ensure black text for print */
                 font-family: 'Inter', sans-serif;
                 overflow: hidden; /* Prevent scrolling and extra pages */
+                box-sizing: border-box;
             }
             body * {
                 visibility: hidden; /* Hide everything by default */
