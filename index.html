@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>দোকানের হিসাব-নিকাশ</title>
+    <!-- Tailwind CSS CDN (for utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2canvas library for taking screenshots -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        /* Custom CSS for neon glow and font */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* gray-900 */
+            color: #39FF14; /* neon-green */
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .text-neon-blue { color: #00FFFF; } /* Cyan */
+        .text-neon-blue-light { color: #80FFFF; }
+        .text-neon-blue-dark { color: #00CDCD; }
+        .text-neon-green { color: #39FF14; } /* Neon Green */
+        .text-neon-green-light { color: #7FFF00; }
+        .bg-neon-blue\/30 { background-color: rgba(0, 255, 255, 0.3); }
+        .bg-neon-green\/30 { background-color: rgba(57, 255, 20, 0.3); }
+
+        .shadow-neon-glow {
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6), 0 0 25px rgba(57, 255, 20, 0.4);
+        }
+        .drop-shadow-lg {
+            filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8));
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        /* Loading dots animation */
+        .dot {
+            opacity: 0;
+            animation: dot-blink 1.4s infinite steps(1);
+        }
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.4s; }
+        .dot:nth-child(3) { animation-delay: 0.8s; }
+
+        @keyframes dot-blink {
+            0%, 40% { opacity: 0; }
+            50%, 90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .bg-gray-650 { background-color: #3f4045; } /* Slightly lighter than 700 */
+        .bg-gray-750 { background-color: #2f3033; } /* Slightly darker than 700 */
+
+        /* Print specific styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: white !important; /* Ensure white background for print */
+                color: black !important; /* Ensure black text for print */
+                font-family: 'Inter', sans-serif;
+                overflow: hidden; /* Prevent scrolling and extra pages */
+            }
+            body * {
+                visibility: hidden; /* Hide everything by default */
+            }
+            #receipt-content {
+                visibility: visible; /* Make receipt content visible */
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%; /* Take full width of the print area */
+                height: auto; /* Adjust height based on content */
+                box-shadow: none;
+                border: none;
+                background-color: white !important;
+                color: black !important;
+                font-size: 10pt; /* Base font size for print */
+                padding: 0; /* Remove padding from the div itself, use @page margin */
+                /* Receipt specific background image for print */
+                background-image: url('uploaded:image_af805f.png-6206ce3b-18d7-46e3-9e3f-46b96ff6ad41'); /* User's provided image */
+                background-size: contain; /* Use 'contain' to ensure the whole image is visible, or 'cover' if it should fill and crop */
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+            #receipt-content * {
+                visibility: visible; /* Make all children of receipt-content visible */
+                color: black !important; /* Force all text to black */
+                background-color: transparent !important; /* Ensure backgrounds are transparent for print */
+                box-shadow: none !important;
+                filter: none !important; /* Remove drop-shadows */
+            }
+            #receipt-content .text-neon-blue,
+            #receipt-content .text-neon-green,
+            #receipt-content .text-neon-green-light,
+            #receipt-content .text-red-400,
+            #receipt-content .text-orange-400 {
+                color: black !important; /* Ensure all text is black for print */
+            }
+            #receipt-content .border-neon-blue,
+            #receipt-content .border-gray-500,
+            #receipt-content .border-gray-600 {
+                border-color: black !important; /* Ensure borders are black */
+            }
+            .print-hide {
+                display: none !important; /* Hide print button during print */
+            }
+            @page {
+                size: A5 portrait; /* A5 size, portrait orientation */
+                margin: 0.2in; /* 0.2 inch margin on all sides */
+            }
+            /* Adjust specific elements for print */
+            #receipt-content h3 {
+                font-size: 18pt !important; /* Larger heading for print */
+                margin-bottom: 10pt !important;
+            }
+            #receipt-content .text-xl {
+                font-size: 14pt !important;
+            }
+            #receipt-content .text-lg {
+                font-size: 12pt !important;
+            }
+            #receipt-content .text-base {
+                font-size: 10pt !important;
+            }
+            #receipt-content .text-sm {
+                font-size: 9pt !important;
+            }
+            #receipt-content .list-none {
+                list-style: none !important;
+            }
+            #receipt-content .ml-0 {
+                margin-left: 0 !important;
+            }
+            #receipt-content .grid {
+                display: grid !important; /* Ensure grid layout is preserved */
+            }
+            /* Adjust grid columns for print to ensure spacing */
+            #receipt-content .grid-cols-5 {
+                /* S.No | Description | Type | Person | Amount */
+                grid-template-columns: 0.5fr 2.5fr 1fr 1fr 1fr !important; /* Adjusted for 5 columns */
+            }
+            #receipt-content .col-span-1 {
+                grid-column: span 1 / span 1 !important;
+            }
+            #receipt-content .col-span-2 {
+                grid-column: span 2 / span 2 !important;
+            }
+            #receipt-content .text-right {
+                text-align: right !important;
+            }
+            #receipt-content .text-left {
+                text-align: left !important;
+            }
+            #receipt-content .text-center {
+                text-align: center !important;
+            }
+            #receipt-content .py-1 {
+                padding-top: 2pt !important;
+                padding-bottom: 2pt !important;
+            }
+            #receipt-content .pb-2 {
+                padding-bottom: 4pt !important;
+            }
+            #receipt-content .pt-2 {
+                padding-top: 4pt !important;
+            }
+            #receipt-content .mb-4 {
+                margin-bottom: 8pt !important;
+            }
+            #receipt-content .mb-2 {
+                margin-bottom: 4pt !important;
+            }
+            #receipt-content .mt-4 {
+                margin-top: 8pt !important;
+            }
+            #receipt-content .mt-6 {
+                margin-top: 12pt !important;
+            }
+            #receipt-content .mt-8 {
+                margin-top: 16pt !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 text-neon-blue z-50 backdrop-blur-sm">
+        <div class="text-xl animate-pulse">লোড হচ্ছে<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>
+    </div>
+
+    <div id="app-content" class="min-h-screen p-4 sm:p-6 lg:p-8 hidden">
+        <!-- Navigation Bar -->
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl sm:text-3xl font-bold text-neon-blue drop-shadow-lg">
+                দোকানের হিসাব-নিকাশ
+            </h1>
+            <div class="flex space-x-2 sm:space-x-4">
+                <button id="all-transactions-btn" class="py-2 px-3 sm:px-4 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-semibold text-xs sm:text-sm hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 shadow-neon-glow">
+                    সকল লেনদেন
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Section (Transaction Input Form) -->
+        <div id="dashboard-page">
+            <div class="bg-gray-800 rounded-xl p-6 mb-8 shadow-2xl border border-neon-blue-dark">
+                <h2 class="text-2xl font-semibold text-neon-green mb-6 text-center">নতুন লেনদেন যোগ করুন</h2>
+                <form id="transaction-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-neon-green-light mb-1">তারিখ</label>
+                        <input type="date" id="date" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner" required>
+                    </div>
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-neon-green-light mb-1">ধরন</label>
+                        <select id="type" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                            <option value="আয়">আয়</option>
+                            <option value="ব্যয়">ব্যয়</option>
+                            <option value="উত্তোলন">উত্তোলন</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="description-select" class="block text-sm font-medium text-neon-green-light mb-1">বিবরণ</label>
+                        <select id="description-select" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                            <option value="সাদাকালো প্রিন্ট">সাদাকালো প্রিন্ট</option>
+                            <option value="রঙিন প্রিন্ট">রঙিন প্রিন্ট</option>
+                            <option value="ছবি প্রিন্ট">ছবি প্রিন্ট</option>
+                            <option value="NID">NID</option>
+                            <option value="জম্মনিবন্ধন">জম্মনিবন্ধন</option>
+                            <option value="পাসপোর্ট">পাসপোর্ট</option>
+                            <option value="অন্যান্য অনলাইন">অন্যান্য অনলাইন</option>
+                            <option value="প্রতিষ্ঠান">প্রতিষ্ঠান</option>
+                            <option value="অন্যান্য">অন্যান্য</option>
+                        </select>
+                    </div>
+                    <div id="other-description-field" class="hidden">
+                        <label for="other-description-input" class="block text-sm font-medium text-neon-green-light mb-1">অন্যান্য বিবরণ লিখুন</label>
+                        <input type="text" id="other-description-input" placeholder="বিবরণ লিখুন" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                    </div>
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-neon-green-light mb-1">টাকার পরিমাণ</label>
+                        <input type="number" id="amount" placeholder="উদাহরণ: ৫০০" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner" min="0.01" step="0.01" required>
+                    </div>
+                    <div id="person-field" class="hidden">
+                        <label for="person" class="block text-sm font-medium text-neon-green-light mb-1">উত্তোলনকারী ব্যক্তি</label>
+                        <input type="text" id="person" placeholder="ব্যক্তির নাম" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                    </div>
+                    <div class="md:col-span-2 mt-4">
+                        <button type="submit" class="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-green font-bold text-lg hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 transform hover:scale-105 shadow-neon-glow">
+                            লেনদেন যোগ করুন
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- All Transactions Page -->
+        <div id="all-transactions-page" class="hidden">
+            <button id="back-to-dashboard-btn" class="mb-6 py-2 px-4 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-semibold text-sm hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 shadow-neon-glow">
+                ← ড্যাশবোর্ডে ফিরে যান
+            </button>
+
+            <!-- Admin Login Section for All Transactions -->
+            <div id="admin-login-section" class="bg-gray-800 rounded-xl p-6 mb-8 shadow-2xl border border-neon-blue-dark">
+                <h2 class="text-2xl font-semibold text-neon-green mb-6 text-center">অ্যাডমিন লগইন</h2>
+                <form id="admin-login-form" class="space-y-6">
+                    <div>
+                        <label for="admin-username" class="block text-sm font-medium text-neon-green-light mb-1">ইউজারনেম</label>
+                        <input type="text" id="admin-username" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner" required>
+                    </div>
+                    <div>
+                        <label for="admin-password" class="block text-sm font-medium text-neon-green-light mb-1">পাসওয়ার্ড</label>
+                        <input type="password" id="admin-password" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner" required>
+                    </div>
+                    <p id="admin-login-error" class="text-red-500 text-sm text-center hidden"></p>
+                    <button type="submit" class="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-bold text-lg hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 transform hover:scale-105 shadow-neon-glow">
+                        লগইন করুন
+                    </button>
+                </form>
+            </div>
+
+            <!-- Content visible only after admin login -->
+            <div id="admin-content" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <button id="admin-logout-btn" class="py-2 px-4 rounded-lg bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-all duration-300 shadow-md">
+                        লগআউট
+                    </button>
+                    <button id="refresh-data-btn" class="py-2 px-4 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-semibold text-sm hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 shadow-neon-glow">
+                        রিফ্রেশ ডেটা
+                    </button>
+                </div>
+
+                <!-- Monthly Report Section -->
+                <div class="bg-gray-800 rounded-xl p-6 mb-8 shadow-2xl border border-neon-blue-dark">
+                    <h2 class="text-2xl font-semibold text-neon-green mb-6 text-center">মাসিক হিসাব প্রতিবেদন</h2>
+                    <div class="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
+                        <select id="monthly-report-month" class="p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner flex-grow">
+                            <!-- Options will be dynamically generated by JS -->
+                        </select>
+                        <input type="number" id="monthly-report-year" placeholder="বছর" class="p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner flex-grow" min="2000" max="2100">
+                    </div>
+
+                    <div class="text-lg text-neon-green-light mb-4 p-4 rounded-lg bg-gray-700 border border-neon-blue">
+                        <p class="mb-2">মোট আয়: <span id="total-income" class="font-bold text-neon-green">০ টাকা</span></p>
+                        <p class="mb-2">মোট ব্যয়: <span id="total-expense" class="font-bold text-red-400">০ টাকা</span></p>
+                        <h3 class="font-semibold text-neon-blue-light mt-4 mb-2">উত্তোলনসমূহ:</h3>
+                        <ul id="total-withdrawals" class="list-disc list-inside ml-4">
+                            <!-- Withdrawals will be dynamically generated by JS -->
+                        </ul>
+                        <p class="mt-4 text-xl font-bold">মাসিক মোট লাভ/ক্ষতি: <span id="net-balance" class="">০ টাকা</span></p>
+                    </div>
+
+                    <div id="monthly-transactions-details" class="mt-6">
+                        <h3 class="text-xl font-semibold text-neon-green-light mb-4 text-center">মাসিক লেনদেনের বিস্তারিত</h3>
+                        <div class="overflow-x-auto rounded-lg border border-neon-blue-dark shadow-inner">
+                            <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-600 text-neon-blue-light uppercase text-sm leading-normal">
+                                    <tr>
+                                        <th class="py-3 px-6 text-left">তারিখ</th>
+                                        <th class="py-3 px-6 text-left">বিবরণ</th>
+                                        <th class="py-3 px-6 text-left">ধরন</th>
+                                        <th class="py-3 px-6 text-right">পরিমাণ</th>
+                                        <th class="py-3 px-6 text-left">উত্তোলনকারী</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="monthly-transactions-table" class="text-gray-200 text-sm font-light">
+                                    <!-- Monthly transactions will be dynamically generated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Transactions List -->
+                <div class="bg-gray-800 rounded-xl p-6 shadow-2xl border border-neon-blue-dark">
+                    <h2 class="text-2xl font-semibold text-neon-green mb-6 text-center">সকল লেনদেনের তালিকা</h2>
+                    <!-- Date Range Filter for All Transactions -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
+                        <div>
+                            <label for="filterStartDate" class="block text-sm font-medium text-neon-green-light mb-1">শুরুর তারিখ</label>
+                            <input type="date" id="filterStartDate" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                        </div>
+                        <div>
+                            <label for="filterEndDate" class="block text-sm font-medium text-neon-green-light mb-1">শেষের তারিখ</label>
+                            <input type="date" id="filterEndDate" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto rounded-lg border border-neon-blue-dark shadow-inner">
+                        <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-600 text-neon-blue-light uppercase text-sm leading-normal">
+                                <tr>
+                                    <th class="py-3 px-6 text-left">তারিখ</th>
+                                    <th class="py-3 px-6 text-left">বিবরণ</th>
+                                    <th class="py-3 px-6 text-left">ধরন</th>
+                                    <th class="py-3 px-6 text-right">পরিমাণ</th>
+                                    <th class="py-3 px-6 text-left">উত্তোলনকারী</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-transactions-table" class="text-gray-200 text-sm font-light">
+                                <!-- All transactions will be dynamically generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Receipt Section -->
+                <div class="bg-gray-800 rounded-xl p-6 mt-8 shadow-2xl border border-neon-blue-dark">
+                    <div class="flex flex-col sm:flex-row gap-4 mb-6 justify-center">
+                        <div>
+                            <label for="receiptFilterType" class="block text-sm font-medium text-neon-green-light mb-1">ধরন</label>
+                            <select id="receiptFilterType" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                                <option value="">সব</option>
+                                <option value="আয়">আয়</option>
+                                <option value="ব্যয়">ব্যয়</option>
+                                <option value="উত্তোলন">উত্তোলন</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="receiptFilterPerson" class="block text-sm font-medium text-neon-green-light mb-1">উত্তোলনকারী</label>
+                            <input type="text" id="receiptFilterPerson" placeholder="ব্যক্তির নাম" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                        </div>
+                        <div>
+                            <label for="receiptFilterStartDateReceipt" class="block text-sm font-medium text-neon-green-light mb-1">শুরুর তারিখ</label>
+                            <input type="date" id="receiptFilterStartDateReceipt" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                        </div>
+                        <div>
+                            <label for="receiptFilterEndDateReceipt" class="block text-sm font-medium text-neon-green-light mb-1">শেষের তারিখ</label>
+                            <input type="date" id="receiptFilterEndDateReceipt" class="w-full p-3 rounded-lg bg-gray-700 text-white border border-neon-blue focus:outline-none focus:ring-2 focus:ring-neon-blue-light shadow-inner">
+                        </div>
+                    </div>
+
+                    <div id="receipt-content" class="bg-gray-700 rounded-lg p-6 border border-neon-blue text-white font-mono print-area">
+                        <div class="text-center mb-6">
+                            <h3 class="text-neon-green text-2xl font-bold">ইউনিক কম্পিউটার & অনলাইন প্লাটফর্ম</h3> <!-- Font size reduced to 2xl -->
+                        </div>
+                        <div class="flex justify-between text-lg mb-4">
+                            <p>তারিখ: <span id="receipt-date"></span></p>
+                            <p>রসিদ নং: #<span id="receipt-number"></span></p>
+                        </div>
+                        <div class="border-t border-b border-dashed border-gray-500 py-4 mb-4">
+                            <p class="text-left text-sm font-semibold text-neon-blue-light mb-2">লেনদেনের বিবরণ:</p>
+                            <ul id="receipt-transactions-list" class="list-none ml-0 text-left text-base">
+                                <!-- Receipt transactions will be dynamically generated by JS -->
+                            </ul>
+                            <p id="receipt-total-amount" class="mt-4 pt-2 border-t border-dashed border-gray-600 text-xl font-bold text-neon-green-light text-right">
+                                মোট পরিমাণ: ০ টাকা
+                            </p>
+                        </div>
+
+                        <div class="flex justify-between mt-8 text-sm">
+                            <div class="text-left">
+                                <p class="border-t border-gray-500 pt-2">স্বাক্ষর (প্রদানকারী)</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="border-t border-gray-500 pt-2">স্বাক্ষর (গ্রহীতা)</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-6 text-center">ধন্যবাদ!</p>
+                    </div>
+                    <button id="screenshot-receipt-btn" class="mt-6 w-full py-3 px-6 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-bold text-lg hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 transform hover:scale-105 shadow-neon-glow print-hide">
+                        রসিদ স্ক্রিনশট করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-gray-800 rounded-xl p-8 max-w-sm w-full shadow-2xl border border-neon-blue-dark animate-fade-in">
+            <h3 class="text-xl font-bold text-neon-green mb-4" id="modal-title">নোটিশ</h3>
+            <p class="text-white mb-6" id="modal-message"></p>
+            <button id="modal-close-btn" class="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-semibold hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 transform hover:scale-105">
+                বন্ধ করুন
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script Web App URL
+        const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2neYNM-edRL9Av3TCjlKKtzCxQe700gTzvugvYCwzDQMyIwglkO0KvjxIDES0Rg_NMg/exec'; // আপনার দেওয়া URL
+
+        // Admin Credentials (Fetched from Google Sheet)
+        let adminUsername = '';
+        let adminPassword = '';
+
+        // Session Management
+        const SESSION_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+        let allTransactions = []; // Stores all fetched transactions
+        let currentReceiptNumber = ''; // To store the generated receipt number for the current receipt
+        let currentPage = 'dashboard'; // Global variable to track current page
+        let isLoggedIn = false; // Track admin login status
+
+        // DOM Elements
+        const loadingScreen = document.getElementById('loading-screen');
+        const appContent = document.getElementById('app-content'); // New ID for main content wrapper
+        const dashboardPage = document.getElementById('dashboard-page');
+        const allTransactionsPage = document.getElementById('all-transactions-page');
+        const transactionForm = document.getElementById('transaction-form');
+        const dateInput = document.getElementById('date');
+        const typeSelect = document.getElementById('type'); // Changed order
+        const descriptionSelect = document.getElementById('description-select'); // New select for description
+        const otherDescriptionField = document.getElementById('other-description-field'); // New div for other description input
+        const otherDescriptionInput = document.getElementById('other-description-input'); // New input for other description
+        const amountInput = document.getElementById('amount');
+        const personField = document.getElementById('person-field');
+        const personInput = document.getElementById('person');
+        const allTransactionsBtn = document.getElementById('all-transactions-btn');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+
+        // Admin Login Elements
+        const adminLoginSection = document.getElementById('admin-login-section');
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const adminUsernameInput = document.getElementById('admin-username'); // Added username input
+        const adminPasswordInput = document.getElementById('admin-password');
+        const adminLoginError = document.getElementById('admin-login-error');
+        const adminContent = document.getElementById('admin-content'); // Content visible after login
+        const adminLogoutBtn = document.getElementById('admin-logout-btn');
+        const refreshDataBtn = document.getElementById('refresh-data-btn'); // New refresh button
+
+        // Monthly Report Elements
+        const monthlyReportMonthSelect = document.getElementById('monthly-report-month');
+        const monthlyReportYearInput = document.getElementById('monthly-report-year');
+        const totalIncomeSpan = document.getElementById('total-income');
+        const totalExpenseSpan = document.getElementById('total-expense');
+        const totalWithdrawalsUl = document.getElementById('total-withdrawals');
+        const netBalanceSpan = document.getElementById('net-balance');
+        const monthlyTransactionsTableBody = document.getElementById('monthly-transactions-table');
+
+        // All Transactions Filter Elements
+        const filterStartDateInput = document.getElementById('filterStartDate');
+        const filterEndDateInput = document.getElementById('filterEndDate');
+        const allTransactionsTableBody = document.getElementById('all-transactions-table');
+
+        // Receipt Elements
+        const receiptFilterTypeSelect = document.getElementById('receiptFilterType');
+        const receiptFilterPersonInput = document.getElementById('receiptFilterPerson');
+        const receiptFilterStartDateReceiptInput = document.getElementById('receiptFilterStartDateReceipt');
+        const receiptFilterEndDateReceiptInput = document.getElementById('receiptFilterEndDateReceipt');
+        const receiptDateSpan = document.getElementById('receipt-date');
+        const receiptNumberSpan = document.getElementById('receipt-number');
+        const receiptTransactionsList = document.getElementById('receipt-transactions-list');
+        const receiptTotalAmountSpan = document.getElementById('receipt-total-amount');
+        const screenshotReceiptBtn = document.getElementById('screenshot-receipt-btn'); // Changed ID
+
+        // Modal Elements
+        const customModal = document.getElementById('custom-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessageElement = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+
+        // --- Utility Functions ---
+
+        function showModal(message, title = 'নোটিশ', autoHide = false) {
+            modalTitle.textContent = title;
+            modalMessageElement.textContent = message;
+            customModal.classList.remove('hidden');
+
+            if (autoHide) {
+                setTimeout(() => {
+                    hideModal();
+                }, 2000); // 2 seconds
+            }
+        }
+
+        function hideModal() {
+            customModal.classList.add('hidden');
+        }
+
+        function showLoading() {
+            loadingScreen.classList.remove('hidden');
+            appContent.classList.add('hidden'); // Hide main content
+        }
+
+        function hideLoading() {
+            loadingScreen.classList.add('hidden');
+            appContent.classList.remove('hidden'); // Show main content
+        }
+
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Function to generate a unique-ish receipt number in UC1234 format
+        function generateUniqueReceiptNumber() {
+            const randomPart = Math.floor(1000 + Math.random() * 9000).toString(); // 4 random digits
+            return `UC${randomPart}`; // UC + 4 random digits
+        }
+
+        // --- Data Fetching ---
+
+        async function fetchTransactions() {
+            showLoading();
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'GET',
+                });
+                const data = await response.json();
+                data.sort((a, b) => {
+                    const dateA = a.Timestamp ? new Date(a.Timestamp) : new Date(a.Date);
+                    const dateB = b.Timestamp ? new Date(b.Timestamp) : new Date(b.Date);
+                    return dateB - dateA; // Newest first
+                });
+                allTransactions = data;
+                renderAllTransactions();
+                renderMonthlyReport();
+                renderReceipt();
+            } catch (error) {
+                console.error("Error fetching transactions:", error);
+                showModal(`লেনদেন লোড করতে সমস্যা হয়েছে: ${error.message}`);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Fetch Admin Credentials from Google Sheet
+        async function fetchAdminCredentials() {
+            try {
+                const payload = { action: 'getAdminCredentials' };
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (result.status === 'success' && result.credentials) {
+                    adminUsername = result.credentials.Username;
+                    adminPassword = result.credentials.Password;
+                    console.log("Admin credentials fetched.");
+                } else {
+                    console.error("Failed to fetch admin credentials:", result.message);
+                    showModal(`অ্যাডমিন ক্রেডেনশিয়াল লোড করতে সমস্যা হয়েছে: ${result.message || 'অজানা ত্রুটি'}`);
+                }
+            } catch (error) {
+                console.error("Error fetching admin credentials:", error);
+                showModal(`অ্যাডমিন ক্রেডেনশিয়াল লোড করতে সমস্যা হয়েছে: ${error.message}`);
+            }
+        }
+
+        // --- Render Functions ---
+
+        function renderMonthlyReport() {
+            const selectedMonth = parseInt(monthlyReportMonthSelect.value);
+            const selectedYear = parseInt(monthlyReportYearInput.value);
+
+            const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
+            const endOfMonth = new Date(selectedYear, selectedMonth, 0);
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const totalWithdrawals = {};
+
+            const filteredTransactions = allTransactions.filter(t => {
+                const transactionDate = t.Date ? new Date(t.Date) : null;
+                return transactionDate && transactionDate >= startOfMonth && transactionDate <= endOfMonth;
+            });
+
+            filteredTransactions.forEach(t => {
+                const amount = parseFloat(t.Amount || 0);
+                if (t.Type === 'আয়') {
+                    totalIncome += amount;
+                } else if (t.Type === 'ব্যয়') {
+                    totalExpense += amount;
+                } else if (t.Type === 'উত্তোলন') {
+                    const personName = t.Person || 'অজানা';
+                    totalWithdrawals[personName] = (totalWithdrawals[personName] || 0) + amount;
+                }
+            });
+
+            const netBalance = totalIncome - totalExpense - Object.values(totalWithdrawals).reduce((sum, val) => sum + val, 0);
+
+            totalIncomeSpan.textContent = `${totalIncome.toLocaleString('bn-BD')} টাকা`;
+            totalExpenseSpan.textContent = `${totalExpense.toLocaleString('bn-BD')} টাকা`;
+
+            totalWithdrawalsUl.innerHTML = '';
+            if (Object.keys(totalWithdrawals).length > 0) {
+                for (const personName in totalWithdrawals) {
+                    const li = document.createElement('li');
+                    li.className = 'text-sm';
+                    li.innerHTML = `${personName}: <span class="font-bold text-orange-400">${totalWithdrawals[personName].toLocaleString('bn-BD')} টাকা</span>`;
+                    totalWithdrawalsUl.appendChild(li);
+                }
+            } else {
+                const li = document.createElement('li');
+                li.className = 'text-sm italic ml-4';
+                li.textContent = 'কোনো উত্তোলন পাওয়া যায়নি।';
+                totalWithdrawalsUl.appendChild(li);
+            }
+
+            netBalanceSpan.textContent = `${netBalance.toLocaleString('bn-BD')} টাকা`;
+            netBalanceSpan.className = `${netBalance >= 0 ? 'text-neon-green' : 'text-red-500'}`;
+
+            // Render monthly transactions table
+            monthlyTransactionsTableBody.innerHTML = '';
+            if (filteredTransactions.length > 0) {
+                filteredTransactions.forEach((t, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b border-gray-600 hover:bg-gray-650 ${index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-750'}`;
+                    tr.innerHTML = `
+                        <td class="py-3 px-6 whitespace-nowrap">${t.Date ? new Date(t.Date).toLocaleDateString('bn-BD') : ''}</td>
+                        <td class="py-3 px-6">${t.Description}</td>
+                        <td class="py-3 px-6">
+                            <span class="py-1 px-3 rounded-full text-xs font-semibold ${t.Type === 'আয়' ? 'bg-neon-green/30 text-neon-green' : t.Type === 'ব্যয়' ? 'bg-red-500/30 text-red-400' : 'bg-orange-500/30 text-orange-400'}">
+                                ${t.Type}
+                            </span>
+                        </td>
+                        <td class="py-3 px-6 text-right font-mono">${parseFloat(t.Amount).toLocaleString('bn-BD')}</td>
+                        <td class="py-3 px-6">${t.Person || '-'}</td>
+                    `;
+                    monthlyTransactionsTableBody.appendChild(tr);
+                });
+            } else {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colSpan="5" class="py-6 text-center text-gray-400">কোনো লেনদেন পাওয়া যায়নি।</td>`;
+                monthlyTransactionsTableBody.appendChild(tr);
+            }
+        }
+
+        function renderAllTransactions() {
+            let filtered = allTransactions;
+
+            if (filterStartDateInput.value) {
+                const start = new Date(filterStartDateInput.value);
+                filtered = filtered.filter(t => {
+                    const transactionDate = t.Date ? new Date(t.Date) : null;
+                    return transactionDate && transactionDate >= start;
+                });
+            }
+
+            if (filterEndDateInput.value) {
+                const end = new Date(filterEndDateInput.value);
+                end.setHours(23, 59, 59, 999); // Include transactions on the end date
+                filtered = filtered.filter(t => {
+                    const transactionDate = t.Date ? new Date(t.Date) : null;
+                    return transactionDate && transactionDate <= end;
+                });
+            }
+
+            allTransactionsTableBody.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach((t, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = `border-b border-gray-600 hover:bg-gray-650 ${index % 2 === 0 ? 'bg-gray-700' : 'bg-gray-750'}`;
+                    tr.innerHTML = `
+                        <td class="py-3 px-6 whitespace-nowrap">${t.Date ? new Date(t.Date).toLocaleDateString('bn-BD') : ''}</td>
+                        <td class="py-3 px-6">${t.Description}</td>
+                        <td class="py-3 px-6">
+                            <span class="py-1 px-3 rounded-full text-xs font-semibold ${t.Type === 'আয়' ? 'bg-neon-green/30 text-neon-green' : t.Type === 'ব্যয়' ? 'bg-red-500/30 text-red-400' : 'bg-orange-500/30 text-orange-400'}">
+                                ${t.Type}
+                            </span>
+                        </td>
+                        <td class="py-3 px-6 text-right font-mono">${parseFloat(t.Amount).toLocaleString('bn-BD')}</td>
+                        <td class="py-3 px-6">${t.Person || '-'}</td>
+                    `;
+                    allTransactionsTableBody.appendChild(tr);
+                });
+            } else {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colSpan="5" class="py-6 text-center text-gray-400">কোনো লেনদেন পাওয়া যায়নি।</td>`;
+                allTransactionsTableBody.appendChild(tr);
+            }
+        }
+
+        function renderReceipt() {
+            let filtered = allTransactions;
+
+            if (receiptFilterTypeSelect.value) {
+                filtered = filtered.filter(t => t.Type === receiptFilterTypeSelect.value);
+            }
+            if (receiptFilterPersonInput.value) {
+                filtered = filtered.filter(t => t.Person && t.Person.toLowerCase().includes(receiptFilterPersonInput.value.toLowerCase()));
+            }
+            if (receiptFilterStartDateReceiptInput.value) {
+                const start = new Date(receiptFilterStartDateReceiptInput.value);
+                filtered = filtered.filter(t => {
+                    const transactionDate = t.Date ? new Date(t.Date) : null;
+                    return transactionDate && transactionDate >= start;
+                });
+            }
+            if (receiptFilterEndDateReceiptInput.value) {
+                const end = new Date(receiptFilterEndDateReceiptInput.value);
+                end.setHours(23, 59, 59, 999);
+                filtered = filtered.filter(t => {
+                    const transactionDate = t.Date ? new Date(t.Date) : null;
+                    return transactionDate && transactionDate <= end;
+                });
+            }
+
+            const totalAmount = filtered.reduce((sum, t) => sum + parseFloat(t.Amount || 0), 0);
+
+            // Generate receipt number only when rendering the receipt section, and store it
+            // Only generate a new receipt number if we are switching to the allTransactions page
+            // or if it's the initial load and currentReceiptNumber is empty.
+            if (currentPage === 'allTransactions' && !currentReceiptNumber) {
+                currentReceiptNumber = generateUniqueReceiptNumber();
+            } else if (currentPage === 'dashboard') {
+                // Reset receipt number when going back to dashboard
+                currentReceiptNumber = '';
+            }
+
+
+            receiptDateSpan.textContent = new Date().toLocaleDateString('bn-BD');
+            receiptNumberSpan.textContent = currentReceiptNumber;
+            receiptTotalAmountSpan.textContent = `মোট পরিমাণ: ${totalAmount.toLocaleString('bn-BD')} টাকা`;
+
+            receiptTransactionsList.innerHTML = '';
+            if (filtered.length > 0) {
+                // Add header row for receipt list
+                const headerLi = document.createElement('li');
+                headerLi.className = 'grid grid-cols-5 gap-2 font-bold text-neon-blue-light pb-2 border-b border-dashed border-gray-600';
+                headerLi.innerHTML = `
+                    <span class="col-span-1">ক্র. স.</span>
+                    <span class="col-span-1">বিবরণ</span>
+                    <span class="col-span-1 text-right">ধরন</span>
+                    <span class="col-span-1 text-right">উত্তোলনকারী</span>
+                    <span class="col-span-1 text-right">পরিমাণ</span>
+                `;
+                receiptTransactionsList.appendChild(headerLi);
+
+                filtered.forEach((t, index) => {
+                    const li = document.createElement('li');
+                    let amountColorClass = 'text-white'; // Default color
+                    if (t.Type === 'ব্যয়') {
+                        amountColorClass = 'text-red-500';
+                    } else if (t.Type === 'উত্তোলন') {
+                        amountColorClass = 'text-orange-400';
+                    } else if (t.Type === 'আয়') {
+                        amountColorClass = 'text-green-500'; // Green for income
+                    }
+
+                    li.className = 'grid grid-cols-5 gap-2 py-1';
+                    li.innerHTML = `
+                        <span class="col-span-1">${index + 1}.</span>
+                        <span class="col-span-1">${t.Description}</span>
+                        <span class="col-span-1 text-right">${t.Type}</span>
+                        <span class="col-span-1 text-right">${t.Person || '-'}</span>
+                        <span class="col-span-1 text-right ${amountColorClass}">${parseFloat(t.Amount).toLocaleString('bn-BD')} টাকা</span>
+                    `;
+                    receiptTransactionsList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.className = 'text-base italic text-center py-2';
+                li.textContent = 'কোনো লেনদেন পাওয়া যায়নি।';
+                receiptTransactionsList.appendChild(li);
+            }
+        }
+
+        // --- Event Listeners ---
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchAdminCredentials(); // Fetch admin credentials on load
+            fetchTransactions(); // Initial data fetch
+
+            // Check for existing session
+            const storedLoginTime = localStorage.getItem('adminLoginTime');
+            if (storedLoginTime) {
+                const lastLoginTime = parseInt(storedLoginTime, 10);
+                if (Date.now() - lastLoginTime < SESSION_TIMEOUT_MS) {
+                    isLoggedIn = true;
+                    // Update timestamp to extend session on refresh
+                    localStorage.setItem('adminLoginTime', Date.now().toString());
+                    adminLoginSection.classList.add('hidden');
+                    adminContent.classList.remove('hidden');
+                } else {
+                    // Session expired
+                    localStorage.removeItem('adminLoginTime');
+                    isLoggedIn = false;
+                }
+            }
+
+            // Set default date for transaction form
+            dateInput.value = getTodayDate();
+
+            // Populate month/year for monthly report
+            for (let i = 0; i < 12; i++) {
+                const option = document.createElement('option');
+                option.value = i + 1;
+                option.textContent = new Date(2000, i, 1).toLocaleString('bn-BD', { month: 'long' });
+                monthlyReportMonthSelect.appendChild(option);
+            }
+            monthlyReportMonthSelect.value = new Date().getMonth() + 1;
+            monthlyReportYearInput.value = new Date().getFullYear();
+
+            // Event Listeners for navigation
+            allTransactionsBtn.addEventListener('click', () => {
+                currentPage = 'allTransactions'; // Update global currentPage
+                dashboardPage.classList.add('hidden');
+                allTransactionsPage.classList.remove('hidden');
+
+                if (isLoggedIn) {
+                    adminLoginSection.classList.add('hidden');
+                    adminContent.classList.remove('hidden');
+                    // Update timestamp to extend session
+                    localStorage.setItem('adminLoginTime', Date.now().toString());
+                } else {
+                    adminContent.classList.add('hidden');
+                    adminLoginSection.classList.remove('hidden');
+                    adminPasswordInput.value = ''; // Clear password field
+                    adminUsernameInput.value = ''; // Clear username field
+                    adminLoginError.classList.add('hidden'); // Hide any previous error
+                }
+                renderAllTransactions(); // Re-render all transactions when page is shown
+                renderMonthlyReport(); // Re-render monthly report when page is shown
+                renderReceipt(); // Re-render receipt when page is shown
+            });
+
+            backToDashboardBtn.addEventListener('click', () => {
+                currentPage = 'dashboard'; // Update global currentPage
+                allTransactionsPage.classList.add('hidden');
+                dashboardPage.classList.remove('hidden');
+                // isLoggedIn = false; // Do not reset login status here, let session timeout handle it
+                renderReceipt(); // Call renderReceipt to reset receipt number when going back to dashboard
+            });
+
+            // Event Listener for transaction type change (show/hide person field)
+            typeSelect.addEventListener('change', () => {
+                if (typeSelect.value === 'উত্তোলন') {
+                    personField.classList.remove('hidden');
+                    personInput.setAttribute('required', 'true');
+                } else {
+                    personField.classList.add('hidden');
+                    personInput.removeAttribute('required');
+                    personInput.value = ''; // Clear person input when not 'উত্তোলন'
+                }
+            });
+
+            // New: Event Listener for description select change (show/hide other description field)
+            descriptionSelect.addEventListener('change', () => {
+                if (descriptionSelect.value === 'অন্যান্য') {
+                    otherDescriptionField.classList.remove('hidden');
+                    otherDescriptionInput.setAttribute('required', 'true');
+                } else {
+                    otherDescriptionField.classList.add('hidden');
+                    otherDescriptionInput.removeAttribute('required');
+                    otherDescriptionInput.value = ''; // Clear other description input
+                }
+            });
+
+            // Event Listener for transaction form submission
+            transactionForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                showLoading();
+                try {
+                    let finalDescription = descriptionSelect.value;
+                    if (finalDescription === 'অন্যান্য') {
+                        finalDescription = otherDescriptionInput.value;
+                    }
+                    if (!finalDescription) {
+                        showModal('বিবরণ পূরণ করুন।');
+                        hideLoading();
+                        return;
+                    }
+
+                    const payload = {
+                        action: 'addTransaction', // Action for Apps Script
+                        date: dateInput.value,
+                        description: finalDescription, // Use selected or custom description
+                        type: typeSelect.value,
+                        amount: parseFloat(amountInput.value),
+                        person: typeSelect.value === 'উত্তোলন' ? personInput.value : '',
+                    };
+
+                    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify(payload),
+                    });
+
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        showModal('লেনদেন সফলভাবে যোগ করা হয়েছে!', 'সফল', true); // Auto-hide success modal
+                        // Reset form fields
+                        dateInput.value = getTodayDate();
+                        descriptionSelect.value = 'সাদাকালো প্রিন্ট'; // Reset to default
+                        otherDescriptionField.classList.add('hidden');
+                        otherDescriptionInput.removeAttribute('required');
+                        otherDescriptionInput.value = '';
+                        amountInput.value = '';
+                        personInput.value = '';
+                        typeSelect.value = 'আয়';
+                        personField.classList.add('hidden'); // Hide person field after submission
+                        fetchTransactions(); // Re-fetch data to update lists
+                    } else {
+                        showModal(`লেনদেন যোগ করতে সমস্যা হয়েছে: ${result.message || 'অজানা ত্রুটি'}`);
+                    }
+                } catch (error) {
+                    console.error("Error adding transaction:", error);
+                    showModal(`লেনদেন যোগ করতে সমস্যা হয়েছে: ${error.message}`);
+                } finally {
+                    hideLoading();
+                }
+            });
+
+            // Event Listeners for monthly report filters
+            monthlyReportMonthSelect.addEventListener('change', renderMonthlyReport);
+            monthlyReportYearInput.addEventListener('input', renderMonthlyReport);
+
+            // Event Listeners for all transactions date filters
+            filterStartDateInput.addEventListener('change', renderAllTransactions);
+            filterEndDateInput.addEventListener('change', renderAllTransactions);
+
+            // Event Listeners for receipt filters
+            receiptFilterTypeSelect.addEventListener('change', renderReceipt);
+            receiptFilterPersonInput.addEventListener('input', renderReceipt);
+            receiptFilterStartDateReceiptInput.addEventListener('change', renderReceipt);
+            receiptFilterEndDateReceiptInput.addEventListener('change', renderReceipt);
+
+            // Admin Login Form Submission
+            adminLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const enteredUsername = adminUsernameInput.value;
+                const enteredPassword = adminPasswordInput.value;
+
+                if (enteredUsername === adminUsername && enteredPassword === adminPassword) {
+                    isLoggedIn = true;
+                    localStorage.setItem('adminLoginTime', Date.now().toString()); // Store login timestamp
+                    adminLoginError.classList.add('hidden');
+                    adminLoginSection.classList.add('hidden'); // Hide login form
+                    adminContent.classList.remove('hidden'); // Show admin content
+                    showModal('সফলভাবে লগইন করা হয়েছে!', 'লগইন সফল', true); // Auto-hide success modal
+                    // Re-render data after login
+                    renderAllTransactions();
+                    renderMonthlyReport();
+                    renderReceipt();
+                } else {
+                    adminLoginError.textContent = 'ভুল ইউজারনেম বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
+                    adminLoginError.classList.remove('hidden');
+                }
+            });
+
+            // Admin Logout Button
+            adminLogoutBtn.addEventListener('click', () => {
+                isLoggedIn = false;
+                localStorage.removeItem('adminLoginTime'); // Clear login timestamp
+                adminContent.classList.add('hidden'); // Hide admin content
+                adminLoginSection.classList.remove('hidden'); // Show login form
+                adminUsernameInput.value = ''; // Clear username field
+                adminPasswordInput.value = ''; // Clear password field
+                adminLoginError.classList.add('hidden'); // Hide any error
+                showModal('সফলভাবে লগআউট করা হয়েছে!', 'লগআউট', true); // Auto-hide success modal
+            });
+
+            // New: Refresh Data Button
+            refreshDataBtn.addEventListener('click', fetchTransactions);
+
+
+            // Screenshot button event listener (replaces print button)
+            screenshotReceiptBtn.addEventListener('click', async () => {
+                const receiptContent = document.getElementById('receipt-content');
+
+                // Temporarily adjust styles for better screenshot quality if needed
+                const originalBgImage = receiptContent.style.backgroundImage;
+                receiptContent.style.backgroundImage = 'none'; // Temporarily remove background image
+
+                try {
+                    const canvas = await html2canvas(receiptContent, {
+                        scale: 2, // Increase scale for higher resolution screenshot
+                        useCORS: true, // Enable cross-origin images if any (though not directly used here)
+                        backgroundColor: '#ffffff' // Ensure white background for transparent areas
+                    });
+
+                    // Restore original background image after screenshot
+                    receiptContent.style.backgroundImage = originalBgImage;
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.download = `রসিদ_${new Date().toLocaleDateString('en-CA').replace(/\//g, '-')}_${currentReceiptNumber}.png`; // Filename with date and receipt number
+                    link.href = imgData;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showModal('রসিদের স্ক্রিনশট সফলভাবে ডাউনলোড হয়েছে!', 'সফল', true); // Auto-hide success modal
+
+                    // Save receipt record to Google Sheet
+                    const receiptRecordPayload = {
+                        action: 'saveReceiptRecord', // Action for Apps Script
+                        receiptNumber: currentReceiptNumber,
+                        receiptDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+                        totalAmount: parseFloat(receiptTotalAmountSpan.textContent.replace('মোট পরিমাণ: ', '').replace(' টাকা', '').replace(/,/g, '')), // Parse total amount
+                        filterType: receiptFilterTypeSelect.value,
+                        filterPerson: receiptFilterPersonInput.value,
+                        filterStartDate: receiptFilterStartDateReceiptInput.value,
+                        filterEndDate: receiptFilterEndDateReceiptInput.value,
+                    };
+
+                    const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain;charset=utf-8',
+                        },
+                        body: JSON.stringify(receiptRecordPayload),
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        console.log('Receipt record saved successfully:', result.message);
+                    } else {
+                        console.error('Failed to save receipt record:', result.message);
+                        showModal(`রসিদ রেকর্ড সংরক্ষণ করতে সমস্যা হয়েছে: ${result.message}`);
+                    }
+
+                } catch (error) {
+                    console.error("Error taking screenshot or saving record:", error);
+                    showModal(`স্ক্রিনশট বা রেকর্ড সংরক্ষণ করতে সমস্যা হয়েছে: ${error.message}`);
+                    // Ensure background image is restored even on error
+                    receiptContent.style.backgroundImage = originalBgImage;
+                }
+            });
+
+            // Modal close button
+            modalCloseBtn.addEventListener('click', hideModal);
+        });
+    </script>
+</body>
+</html>
