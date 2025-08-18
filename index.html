@@ -201,11 +201,11 @@
 
     <div id="app-content" class="min-h-screen p-4 sm:p-6 lg:p-8 hidden">
         <!-- Navigation Bar -->
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-2xl sm:text-3xl font-bold text-neon-blue drop-shadow-lg">
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+            <h1 class="text-2xl sm:text-3xl font-bold text-neon-blue drop-shadow-lg mb-4 sm:mb-0">
                 দোকানের হিসাব-নিকাশ
             </h1>
-            <div class="flex space-x-2 sm:space-x-4">
+            <div class="flex flex-wrap justify-center sm:justify-end gap-2 sm:gap-4">
                 <button id="all-transactions-btn" class="py-2 px-3 sm:px-4 rounded-lg bg-gradient-to-r from-neon-blue to-neon-green text-neon-blue font-semibold text-xs sm:text-sm hover:from-neon-blue-light hover:to-neon-green-light transition-all duration-300 shadow-neon-glow">
                     সকল লেনদেন
                 </button>
@@ -792,7 +792,10 @@
                 `;
                 receiptTransactionsList.appendChild(headerLi);
 
-                filtered.forEach((t, index) => {
+                // Limit to 20 items per receipt for screenshot
+                const itemsToShow = filtered.slice(0, 20); // Get only the first 20 items
+
+                itemsToShow.forEach((t, index) => {
                     const li = document.createElement('li');
                     let amountColorClass = 'text-white'; // Default color
                     if (t.Type === 'ব্যয়') {
